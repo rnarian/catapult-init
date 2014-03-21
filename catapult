@@ -1,0 +1,179 @@
+#!/bin/bash
+
+function usage {
+  echo -e "usage: $0 <COMMAND>"
+  echo -e "COMMAND:"
+  echo -e "  init, version, versionbump"
+  echo -e "OPTIONAL:"
+  echo -e "  help         Prints this help"
+  echo -e "EXAMPLES:"
+  echo -e "  $0 init                   Initiates catapult"
+  echo -e "  $0 version                Retrieves current version"
+  echo -e "  $0 versionbump v0.1.1     Updates project to specified version"
+}
+
+function promptUserInfo {
+  u=(name project description)
+
+  for i in "${u[@]}"; do
+    input=""
+    while [[ ! "$input" =~ ^[[:space:][:punct:]a-zA-ZöäüßÖÄÜ\-]+$ ]]; do
+      echo ""
+      read -p "Please enter $i: `echo $'\n > '`" input
+    done
+    d=userinfo_$i
+    eval $d="\"${input}\""
+  done
+
+  echo ""
+  echo "Your inputs:"
+  echo "------------"
+  echo "  Name:        $userinfo_name"
+  echo "  Project:     $userinfo_project"
+  echo "  Description: $userinfo_description"
+
+  input=""
+  while [[ ! "$input" =~ ^[nNyY]$ ]]; do
+    echo ""
+    read -p "Are these correct (y/n?): `echo $'\n > '`" input
+  done
+  [[ $input =~ ^[nN]$ ]] && promptUserInfo
+}
+
+function bumpVersion {
+  if [[ ! -f package.json ]] || [[ ! -f bower.json ]]; then
+    echo ""
+    echo "package.json and/or bower.json missing..."
+    echo "Maybe not a catapult project?"
+  else
+    version="$version"
+    while [[ ! $version =~ ^[0-9+]\.[0-9+]\.[0-9+]$ ]]; do
+      echo ""
+      read -p "Please enter version number, e.g. 1.0.1: `echo $'\n > '`" version
+    done
+
+    echo ""
+    echo "Updating version in package.json..."
+    replaceInFile "package.json" 3 "\ \ \"version\": \"${version}\","
+
+    echo ""
+    echo "Updating version in bower.json..."
+    replaceInFile "bower.json" 3 "\ \ \"version\": \"${version}\","
+  fi
+}
+
+function retrieveVersion {
+  if [[ ! -f package.json ]] || [[ ! -f bower.json ]]; then
+    echo ""
+    echo "package.json and/or bower.json missing..."
+    echo "Maybe not a catapult project?"
+  else
+    version=$(cat package.json | grep version | sed 's/\"version\": \"//g' | sed 's/\",//g')
+    echo $version
+  fi
+}
+
+function replaceInFile {
+  file=$1
+  linenumber=$2
+  replace=$3
+  tempfile=$(mktemp XXXX)
+
+  sed ${linenumber}'s/.*/'"${replace}"'/' ${file} > ${tempfile}
+
+  mv -f ${tempfile} ${file}
+}
+
+# Parameter loop
+while [ "$1" != "" ];
+do
+  case "$1" in
+    init)
+      cmd="init"
+      break
+      ;;
+    version)
+      cmd="versionlist"
+      break
+      ;;
+    versionbump)
+      if [[ ! -z $2 || $2 =~ ^v[0-9+]\.[0-9+]\.[0-9+]$ ]]; then
+        version="$2"
+      fi
+      cmd="versionbump"
+      break
+      ;;
+    help)
+      usage && exit 0
+      ;;
+    *)
+      echo "Error: Unknown argument..."
+      echo ""
+      usage && exit 0
+      ;;
+  esac
+done
+
+[[ "$cmd" == "" ]] && cmd="init"
+
+[[ "$cmd" == "versionlist" ]] && retrieveVersion
+
+[[ "$cmd" == "versionbump" ]] && bumpVersion
+
+if [[ "$cmd" == "init" ]]; then
+  echo "Initialising new project..."
+  promptUserInfo
+
+  project_folder=${userinfo_project// /-}
+
+  current_folder=${PWD##*/}
+
+  echo ""
+  echo "Getting latest version of catapult..."
+  echo ""
+
+  if [[ ${project_folder} == ${current_folder} ]]; then
+    # check if project folder is empty
+    if [ "$(ls -A . 2> /dev/null)" == "" ]; then
+      git clone https://github.com/rnarian/catapult.git tmp
+      rm -rf ./tmp/.git
+      shopt -s dotglob
+      mv ./tmp/* ./
+      rm -rf ./tmp
+    else
+      echo "Directory must be empty!" && exit 0
+    fi
+  else
+    git clone https://github.com/rnarian/catapult.git ${project_folder}
+    rm -rf ./${project_folder}/.git
+    cd ${project_folder}
+  fi
+
+  echo ""
+  echo "Setting up package.json..."
+  replaceInFile "package.json" 2 "\ \ \"name\": \"${userinfo_project}\","
+  replaceInFile "package.json" 3 "\ \ \"version\": \"0.0.1\","
+
+  echo ""
+  echo "Setting up bower.json..."
+  replaceInFile "bower.json" 2 "\ \ \"name\": \"${userinfo_project}\","
+  replaceInFile "bower.json" 3 "\ \ \"version\": \"0.0.1\","
+  replaceInFile "bower.json" 5 "\ \ \ \ \"${userinfo_name}\""
+
+  echo ""
+  echo "Setting up README.md..."
+  rm -rf README.md
+  echo "# ${userinfo_project}" > README.md
+
+  echo ""
+  echo "Setting up index.html..."
+  replaceInFile "index.html" 7 "\ \ <title>${userinfo_project}<\/title>"
+
+  echo ""
+  echo "Setting up style.scss..."
+  replaceInFile "assets/css/style.scss" 4 "\ *\ Author:\ ${userinfo_name}"
+
+  npm install
+
+  bower install
+fi
