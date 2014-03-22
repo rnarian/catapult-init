@@ -153,12 +153,14 @@ if [[ "$cmd" == "init" ]]; then
   echo "Setting up package.json..."
   replaceInFile "package.json" 2 "\ \ \"name\": \"${userinfo_project}\","
   replaceInFile "package.json" 3 "\ \ \"version\": \"0.0.1\","
+  replaceInFile "package.json" 4 "\ \ \"description\": \"${userinfo_description}\","
 
   echo ""
   echo "Setting up bower.json..."
   replaceInFile "bower.json" 2 "\ \ \"name\": \"${userinfo_project}\","
   replaceInFile "bower.json" 3 "\ \ \"version\": \"0.0.1\","
   replaceInFile "bower.json" 5 "\ \ \ \ \"${userinfo_name}\""
+  replaceInFile "bower.json" 7 "\ \ \"description\": \"${userinfo_description}\","
 
   echo ""
   echo "Setting up README.md..."
