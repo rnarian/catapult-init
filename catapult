@@ -47,7 +47,7 @@ function bumpVersion {
     echo "Maybe not a catapult project?"
   else
     version="$version"
-    while [[ ! $version =~ ^[0-9+]\.[0-9+]\.[0-9+]$ ]]; do
+    while [[ ! $version =~ ^[0-9+]{1,4}\.[0-9+]{1,4}\.[0-9+]{1,4}$ ]]; do
       echo ""
       read -p "Please enter version number, e.g. 1.0.1: `echo $'\n > '`" version
     done
@@ -97,7 +97,7 @@ do
       break
       ;;
     versionbump)
-      if [[ ! -z $2 || $2 =~ ^v[0-9+]\.[0-9+]\.[0-9+]$ ]]; then
+      if [[ ! -z $2 || $2 =~ ^[0-9+]{1,4}\.[0-9+]{1,4}\.[0-9+]{1,4}$ ]]; then
         version="$2"
       fi
       cmd="versionbump"
