@@ -9,7 +9,7 @@ function usage {
   echo -e "EXAMPLES:"
   echo -e "  $0 init                   Initiates catapult"
   echo -e "  $0 version                Retrieves current version"
-  echo -e "  $0 versionbump v0.1.1     Updates project to specified version"
+  echo -e "  $0 versionbump [0.1.1]    Updates project to specified version"
 }
 
 function promptUserInfo {
